@@ -4,6 +4,8 @@
 module.exports = function (grunt) {
     'use strict';
 
+    var lib = require('bower-files')();
+
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
 
@@ -17,18 +19,6 @@ module.exports = function (grunt) {
                 'gruntfile.js',
                 'js/*.js'
             ]
-        },
-
-        cssmin: {
-            target: {
-                files: [{
-                    expand: true,
-                    cwd: 'css',
-                    src: ['*.css', '!*.min.css'],
-                    dest: 'publish/css',
-                    ext: '.min.css'
-                }]
-            }
         },
 
         clean: {
@@ -47,8 +37,25 @@ module.exports = function (grunt) {
         //    }
         //},
 
+        'http-server': {
+            'dev': {
+                root: 'publish',
+                port: 8000,
+                host: '0.0.0.0',
+                showDir: true,
+                autoIndex: true,
+                ext: 'html',
+                // run in parallel with other tasks
+                runInBackground: true,
+                // specify a logger function. By default the requests are
+                // sent to stdout.
+                logFn: function (req, res, error) {
+                }
+            }
+        },
+
         uglify: {
-            mytarget: {
+            debug: {
                 options: {
                     sourceMap: true,
                     sourceMapRoot: 'publish/js',
@@ -60,6 +67,37 @@ module.exports = function (grunt) {
                     src: ['*.js', '!*.min.js'],
                     dest: 'publish/js',
                     ext: '.min.js'
+                }, {
+                    'publish/js/lib.min.js': lib.ext('js').files
+                }]
+            },
+            release: {
+                files: [{
+                    expand: true,
+                    cwd: 'js',
+                    src: ['*.js', '!*.min.js'],
+                    dest: 'publish/js',
+                    ext: '.min.js'
+                }, {
+                    'publish/js/lib.min.js': lib.ext('js').files
+                }]
+            }
+        },
+
+        less: {
+            publish: {
+                options: {
+                    banner: '<%= banner %>\n',
+                    compress: true
+                },
+                files: [{
+                    expand: true,
+                    cwd: 'css',
+                    src: ['*.css', '!*.min.css'],
+                    dest: 'publish/css',
+                    ext: '.min.css'
+                }, {
+                    'publish/css/lib.min.css': lib.ext(['css', 'less']).files
                 }]
             }
         },
@@ -74,19 +112,7 @@ module.exports = function (grunt) {
                     filter: 'isFile'
                 }, {
                     expand: true,
-                    src: ['components/**/*.css'],
-                    dest: 'publish/css',
-                    flatten: true,
-                    filter: 'isFile'
-                }, {
-                    expand: true,
-                    src: ['components/**/*.min.js', 'components/**/*.min.map'],
-                    dest: 'publish/js',
-                    flatten: true,
-                    filter: 'isFile'
-                }, {
-                    expand: true,
-                    src: ['components/*/fonts/*.*'],
+                    src: ['components/*/fonts/*.*', '!components/bootstrap/**/fonts/*.*'],
                     dest: 'publish/fonts',
                     flatten: true,
                     filter: 'isFile'
@@ -119,11 +145,12 @@ module.exports = function (grunt) {
         watch: {
             styles: {
                 files: ['css/**', 'js/**', 'img/**', 'css/**', '*.html', 'Gruntfile.js'],
-                tasks: ['jshint', 'clean', 'cssmin', 'uglify', 'copy', 'htmlmin']
+                tasks: ['jshint', 'clean', 'less', 'uglify:debug', 'copy', 'htmlmin']
             }
         }
     });
 
+    grunt.loadNpmTasks('grunt-contrib-less');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-concat');
@@ -132,6 +159,8 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-watch');
+    grunt.loadNpmTasks('grunt-http-server');
 
-    grunt.registerTask('default', ['jshint', 'clean', 'cssmin', 'uglify', 'copy', 'htmlmin', 'watch']);
+    grunt.registerTask('default', ['jshint', 'clean', 'less', 'uglify:debug', 'copy', 'htmlmin', 'http-server', 'watch']);
+    grunt.registerTask('release', ['jshint', 'clean', 'less', 'uglify:release', 'copy', 'htmlmin']);
 };

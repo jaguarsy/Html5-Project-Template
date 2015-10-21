@@ -3,4 +3,4 @@ A standard html5 project template with grunt, bower and grunt-http-server.
 
 For the dawdlers like myself.
 
-Just coding and `npm start`.
+Just coding and `npm start`. And `grunt release` is for releasing.
